@@ -1,0 +1,1 @@
+export { default } from "file:///C:/Users/DELL/etsy-clone-nuxt4/node_modules/@nuxt/vite-builder/dist/runtime/vite-node.mjs"

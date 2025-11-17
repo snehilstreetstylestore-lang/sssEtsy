@@ -14,9 +14,13 @@ const props = defineProps<Props>()
 const cartStore = useCartStore()
 const wishlistStore = useWishlistStore()
 
+// Detect client + touch devices
 const isClient = ref(false)
+const isTouchDevice = ref(false)
+
 onMounted(() => {
   isClient.value = true
+  isTouchDevice.value = window.matchMedia('(hover: none), (pointer: coarse)').matches
 })
 
 const toggleWishlist = () => {
@@ -33,12 +37,12 @@ const isWishlisted = computed(() => wishlistStore.isInWishlist(props.product.id)
 <template>
   <article
     v-if="product"
-    :class="[ 
+    :class="[
       'group bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm flex flex-col transition-all duration-300',
-      'hover:shadow-md hover:border-slate-200 hover:-translate-y-1'
+      !isTouchDevice && 'hover:shadow-lg hover:border-slate-200 hover:-translate-y-1 hover:scale-[1.01]'
     ]"
   >
-    <!-- Product Image -->
+    <!-- 🖼 Product Image -->
     <NuxtLink
       :to="`/product/${product.slug}`"
       class="relative block aspect-[4/5] overflow-hidden bg-slate-100 rounded-t-2xl"
@@ -46,11 +50,12 @@ const isWishlisted = computed(() => wishlistStore.isInWishlist(props.product.id)
       <img
         :src="product.images?.[0] || '/images/placeholder.png'"
         :alt="product.name"
-        class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
+        class="w-full h-full object-cover transition-transform duration-500 ease-out"
+        :class="!isTouchDevice && 'group-hover:scale-[1.08]'"
         loading="lazy"
       />
 
-      <!-- Product Badges -->
+      <!-- 🏷 Product Badges -->
       <div
         v-if="product.badges?.length"
         class="absolute top-2 left-2 flex flex-wrap gap-1"
@@ -64,7 +69,7 @@ const isWishlisted = computed(() => wishlistStore.isInWishlist(props.product.id)
         </span>
       </div>
 
-      <!-- Wishlist Button -->
+      <!-- ❤️ Wishlist Button -->
       <button
         type="button"
         class="absolute top-2 right-2 rounded-full bg-white/90 border border-slate-200 
@@ -78,11 +83,17 @@ const isWishlisted = computed(() => wishlistStore.isInWishlist(props.product.id)
           ]"
         />
       </button>
+
+      <!-- ✨ Hover Overlay (desktop only) -->
+      <div
+        v-if="!isTouchDevice"
+        class="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+      ></div>
     </NuxtLink>
 
-    <!-- Product Info -->
+    <!-- 📄 Product Info -->
     <div class="flex-1 flex flex-col px-3.5 pt-3 pb-3">
-      <!-- Product Title -->
+      <!-- 🏷 Title -->
       <NuxtLink
         :to="`/product/${product.slug}`"
         class="text-sm font-medium line-clamp-2 hover:underline"
@@ -90,12 +101,12 @@ const isWishlisted = computed(() => wishlistStore.isInWishlist(props.product.id)
         {{ product.name }}
       </NuxtLink>
 
-      <!-- Product Description -->
+      <!-- ✍️ Description -->
       <p class="mt-1 text-xs text-slate-500 line-clamp-2">
         {{ product.description }}
       </p>
 
-      <!-- Price + Rating -->
+      <!-- 💰 Price + Rating -->
       <div class="mt-3 flex items-center justify-between text-sm">
         <div class="font-semibold">
           {{ product.currency }} {{ product.price }}
@@ -105,7 +116,7 @@ const isWishlisted = computed(() => wishlistStore.isInWishlist(props.product.id)
         </div>
       </div>
 
-      <!-- Add to Cart -->
+      <!-- 🛒 Add to Cart -->
       <div class="mt-3">
         <BaseButton
           size="sm"
@@ -123,7 +134,12 @@ const isWishlisted = computed(() => wishlistStore.isInWishlist(props.product.id)
 article {
   transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
 }
-article:hover {
-  transform: translateY(-3px);
+
+/* Extra hover detail only for pointer devices */
+@media (hover: hover) and (pointer: fine) {
+  article:hover {
+    transform: translateY(-4px) scale(1.01);
+    box-shadow: 0 10px 16px rgba(0, 0, 0, 0.08);
+  }
 }
 </style>

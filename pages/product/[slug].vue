@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useRoute } from '#imports'
+import { useRoute, navigateTo } from '#imports'
 import { products } from '~/data/products'
 import { shops } from '~/data/shops'
 import { useCartStore } from '~/stores/cart'
 import { useWishlistStore } from '~/stores/wishlist'
 import BaseButton from '~/components/ui/BaseButton.vue'
 import ProductGrid from '~/components/ui/ProductGrid.vue'
+import { Heart, Share2 } from 'lucide-vue-next'
 
 const route = useRoute()
 const slug = computed(() => route.params.slug as string)
@@ -33,8 +34,27 @@ const displayedImage = computed(() => selectedImage.value || product.value?.imag
 const selectImage = (img: string) => (selectedImage.value = img)
 
 const addToCart = () => product.value && cartStore.addToCart(product.value.id, 1)
+const buyNow = () => {
+  if (!product.value) return
+  cartStore.addToCart(product.value.id, 1)
+  navigateTo('/checkout')
+}
+
 const toggleWishlist = () => product.value && wishlistStore.toggle(product.value.id)
-const isWishlisted = computed(() => (product.value ? wishlistStore.isInWishlist(product.value.id) : false))
+const isWishlisted = computed(() =>
+  product.value ? wishlistStore.isInWishlist(product.value.id) : false
+)
+
+const copied = ref(false)
+const shareProduct = async () => {
+  try {
+    await navigator.clipboard.writeText(window.location.href)
+    copied.value = true
+    setTimeout(() => (copied.value = false), 1500)
+  } catch {
+    alert('Could not copy link')
+  }
+}
 </script>
 
 <template>
@@ -44,20 +64,22 @@ const isWishlisted = computed(() => (product.value ? wishlistStore.isInWishlist(
       class="flex flex-col lg:flex-row gap-6 lg:gap-12 items-start bg-white rounded-2xl border border-slate-100 p-4 sm:p-6 lg:p-8 shadow-sm"
     >
       <!-- Left: Images -->
-      <div class="flex flex-col gap-3 flex-1 justify-center items-center">
+      <div class="flex flex-col gap-3 flex-1 items-center justify-center w-full">
         <!-- Main Image -->
-        <div class="relative rounded-2xl overflow-hidden border border-slate-100 flex justify-center items-center w-full">
+        <div
+          class="relative rounded-2xl overflow-hidden border border-slate-100 flex justify-center items-center w-full bg-slate-50"
+        >
           <img
             :src="displayedImage"
             :alt="product.name"
-            class="max-w-full max-h-[280px] sm:max-h-[360px] lg:max-h-[420px] object-contain rounded-2xl"
+            class="main-product-image"
           />
         </div>
 
         <!-- Thumbnails -->
         <div
           v-if="product.images.length > 1"
-          class="flex gap-2 overflow-x-auto py-2 sm:py-0 scrollbar-hide justify-center"
+          class="flex gap-2 overflow-x-auto py-2 sm:py-0 scrollbar-hide justify-center w-full"
         >
           <div
             v-for="(img, index) in product.images"
@@ -68,27 +90,59 @@ const isWishlisted = computed(() => (product.value ? wishlistStore.isInWishlist(
               ? 'border-emerald-500 ring-2 ring-emerald-200'
               : 'border-slate-200 hover:border-slate-400'"
           >
-            <img :src="img" :alt="product.name" class="w-full h-full object-cover" />
+            <img
+              :src="img"
+              :alt="product.name"
+              class="w-full h-full object-cover"
+            />
           </div>
         </div>
       </div>
 
       <!-- Right: Details -->
       <div class="flex-1 space-y-4 sm:space-y-5">
-        <!-- Title & Description -->
-        <div>
-          <h1 class="text-xl sm:text-2xl font-semibold tracking-tight">
-            {{ product.name }}
-          </h1>
-          <p class="text-slate-600 mt-1 text-sm sm:text-base leading-relaxed">
+        <div class="flex flex-col gap-2">
+          <div class="flex justify-between items-start flex-wrap gap-2">
+            <h1 class="text-xl sm:text-2xl font-semibold tracking-tight">
+              {{ product.name }}
+            </h1>
+
+            <!-- Wishlist + Share -->
+            <div class="flex gap-2 items-center">
+              <button
+                type="button"
+                class="rounded-full bg-white border border-slate-200 p-2 shadow-sm hover:bg-slate-50 transition"
+                @click.prevent.stop="toggleWishlist"
+              >
+                <Heart
+                  :class="[ 'w-5 h-5 transition-colors duration-200', isWishlisted ? 'fill-red-500 text-red-500' : 'text-slate-700' ]"
+                />
+              </button>
+
+              <button
+                type="button"
+                class="rounded-full bg-white border border-slate-200 p-2 shadow-sm hover:bg-slate-50 transition relative"
+                @click.prevent.stop="shareProduct"
+              >
+                <Share2 class="w-5 h-5 text-slate-700" />
+                <span
+                  v-if="copied"
+                  class="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full shadow-sm"
+                >
+                  Copied!
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <p class="text-slate-600 text-sm sm:text-base leading-relaxed">
             {{ product.description }}
           </p>
-          <p class="text-sm text-slate-700 mt-2">
+          <p class="text-sm text-slate-700">
             ★ {{ product.rating.toFixed(1) }} · {{ product.ratingCount }} reviews
           </p>
         </div>
 
-        <!-- Price & Stock -->
         <div class="flex flex-wrap items-center gap-3 mt-2">
           <p class="text-2xl sm:text-3xl font-semibold">
             {{ product.currency }} {{ product.price }}
@@ -101,14 +155,21 @@ const isWishlisted = computed(() => (product.value ? wishlistStore.isInWishlist(
           </span>
         </div>
 
-        <!-- Action Buttons -->
+        <!-- Buttons -->
         <div class="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-3">
-          <BaseButton class="flex-1" @click="addToCart" :disabled="!product.inStock">
-            Add to cart
+          <BaseButton
+            class="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-medium"
+            @click="buyNow"
+            :disabled="!product.inStock"
+          >
+            Buy Now
           </BaseButton>
-          <BaseButton class="flex-1" variant="secondary" @click="toggleWishlist">
-            <span v-if="isWishlisted">❤️ Wishlisted</span>
-            <span v-else>🤍 Add to wishlist</span>
+          <BaseButton
+            class="flex-1 bg-white border border-amber-500 text-amber-600 hover:bg-amber-50 font-medium"
+            @click="addToCart"
+            :disabled="!product.inStock"
+          >
+            Add to Cart
           </BaseButton>
         </div>
 
@@ -146,19 +207,44 @@ const isWishlisted = computed(() => (product.value ? wishlistStore.isInWishlist(
     </section>
   </div>
 
-  <!-- Fallback -->
   <p v-else class="text-sm sm:text-base text-slate-600 text-center py-10">
     Product not found.
   </p>
 </template>
 
 <style scoped>
-/* Smooth image hover */
-img {
+.main-product-image {
+  width: 100%;
+  height: auto;
+  max-width: 420px;
+  max-height: 420px;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto;
   transition: transform 0.3s ease;
 }
-img:hover {
-  transform: scale(1.02);
+
+/* Center perfectly for smaller screens */
+@media (max-width: 1024px) {
+  .main-product-image {
+    max-width: 320px;
+    max-height: 320px;
+    margin: 0 auto;
+  }
+}
+
+/* Hover effect for desktop only */
+@media (hover: hover) and (pointer: fine) {
+  .main-product-image:hover {
+    transform: scale(1.04);
+  }
+}
+
+/* Disable hover effect for touch devices */
+@media (hover: none) and (pointer: coarse) {
+  .main-product-image:hover {
+    transform: none !important;
+  }
 }
 
 /* Hide horizontal scrollbar for thumbnails */

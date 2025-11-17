@@ -9,17 +9,20 @@
     "start": "nuxt start"
   },
   "dependencies": {
-    "nuxt": "^4.0.0",
-    "vue": "^3.5.0",
-    "pinia": "^2.1.7",
     "@pinia/nuxt": "^0.5.3",
     "@vueuse/motion": "^2.0.0",
-    "lucide-vue-next": "^0.474.0"
+    "chart.js": "^4.5.1",
+    "lucide-vue-next": "^0.474.0",
+    "nuxt": "^4.0.0",
+    "pinia": "^2.1.7",
+    "recharts": "^3.4.1",
+    "vue": "^3.5.0",
+    "vue-chartjs": "^5.3.3"
   },
   "devDependencies": {
-    "tailwindcss": "^3.4.0",
-    "postcss": "^8.4.0",
     "autoprefixer": "^10.4.0",
+    "postcss": "^8.4.0",
+    "tailwindcss": "^3.4.0",
     "typescript": "^5.0.0"
   }
 }

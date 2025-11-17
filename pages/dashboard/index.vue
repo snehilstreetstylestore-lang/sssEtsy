@@ -6,85 +6,171 @@ definePageMeta({
 import { useUserStore } from '~/stores/user'
 import { products } from '~/data/products'
 import BaseButton from '~/components/ui/BaseButton.vue'
+import { Star, MessageSquare, Eye, TrendingUp, ShoppingBag } from 'lucide-vue-next'
+
+// ✅ Import Chart.js and vue-chartjs
+import { Bar } from 'vue-chartjs'
+import {
+  Chart as ChartJS,
+  Title,
+  Tooltip,
+  Legend,
+  BarElement,
+  CategoryScale,
+  LinearScale,
+} from 'chart.js'
+
+// Register Chart.js components
+ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale)
 
 const userStore = useUserStore()
-const userProducts = computed(() => products.slice(0, 3))
+const userProducts = computed(() => products.slice(0, 4))
+
+// Chart data
+const chartData = {
+  labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+  datasets: [
+    {
+      label: 'Sales',
+      backgroundColor: '#10b981',
+      data: [240, 320, 290, 400, 360, 500, 420],
+      borderRadius: 6,
+    },
+  ],
+}
+
+const chartOptions = {
+  responsive: true,
+  plugins: {
+    legend: {
+      display: false,
+    },
+  },
+  scales: {
+    x: { grid: { display: false } },
+    y: { grid: { color: '#f1f5f9' } },
+  },
+}
+
+const comments = [
+  { name: 'Aarav Sharma', message: 'Absolutely loved the craftsmanship! Shipping was quick too.', rating: 5 },
+  { name: 'Mia Patel', message: 'The product quality is good but packaging could be improved.', rating: 4 },
+  { name: 'Liam Smith', message: 'Nice design and fits perfectly in my living room.', rating: 5 },
+]
 </script>
 
 <template>
-  <div class="space-y-5 px-4 sm:px-6 lg:px-8 py-4">
-    <!-- Navbar / Header -->
-    <header class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3">
-      <div class="flex-1 min-w-0">
-        <h1 class="text-base sm:text-lg font-semibold tracking-tight">
-          Seller overview
+  <div class="space-y-6 px-4 sm:px-6 lg:px-8 py-5 bg-slate-50 min-h-screen">
+    <!-- Header -->
+    <header class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      <div class="flex-1">
+        <h1 class="text-lg sm:text-xl font-semibold tracking-tight text-slate-800">
+          Seller Overview
         </h1>
-        <p class="text-xs sm:text-sm text-slate-600 mt-1">
-          Dashboard overview of your shop, metrics, and recent listings.
+        <p class="text-xs sm:text-sm text-slate-500 mt-1">
+          Insight into your store’s performance, engagement, and listings.
         </p>
       </div>
-      <BaseButton variant="secondary" class="whitespace-nowrap mt-2 sm:mt-0 text-sm sm:text-base px-3 py-1.5">
-        View shop preview
+      <BaseButton variant="secondary" class="whitespace-nowrap text-sm sm:text-base px-3 py-1.5">
+        View Shop Preview
       </BaseButton>
     </header>
 
-    <!-- Metrics Grid -->
-    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-      <!-- User Info -->
-      <div class="bg-slate-900 text-white rounded-2xl p-3 flex flex-col gap-1">
-        <p class="text-[10px] sm:text-xs text-slate-200">Signed in as</p>
-        <p class="text-sm font-semibold line-clamp-1">{{ userStore.currentUser?.name || 'Guest' }}</p>
-        <p class="text-[10px] sm:text-xs text-slate-300 line-clamp-1">{{ userStore.currentUser?.email || 'No email set' }}</p>
+    <!-- Stats Overview -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div class="bg-white border border-slate-100 rounded-2xl p-4 flex items-center gap-3 shadow-sm hover:shadow-md">
+        <Eye class="w-6 h-6 text-emerald-500" />
+        <div>
+          <p class="text-xs text-slate-500">Total Views</p>
+          <p class="text-lg font-semibold">12,456</p>
+        </div>
       </div>
 
-      <!-- Views Metric -->
-      <div class="bg-white rounded-2xl border border-slate-100 p-3 flex flex-col gap-1">
-        <p class="text-[10px] sm:text-xs text-slate-500">Mock metrics</p>
-        <p class="text-xl sm:text-2xl font-semibold mt-0.5">428</p>
-        <p class="text-[10px] sm:text-xs text-slate-500">Views across your listings</p>
+      <div class="bg-white border border-slate-100 rounded-2xl p-4 flex items-center gap-3 shadow-sm hover:shadow-md">
+        <ShoppingBag class="w-6 h-6 text-blue-500" />
+        <div>
+          <p class="text-xs text-slate-500">Total Sales</p>
+          <p class="text-lg font-semibold">789</p>
+        </div>
       </div>
 
-      <!-- Conversion Metric -->
-      <div class="bg-white rounded-2xl border border-slate-100 p-3 flex flex-col gap-1">
-        <p class="text-[10px] sm:text-xs text-slate-500">Conversion rate</p>
-        <p class="text-xl sm:text-2xl font-semibold mt-0.5">3.2%</p>
-        <p class="text-[10px] sm:text-xs text-slate-500">Example metric for layout only</p>
+      <div class="bg-white border border-slate-100 rounded-2xl p-4 flex items-center gap-3 shadow-sm hover:shadow-md">
+        <TrendingUp class="w-6 h-6 text-purple-500" />
+        <div>
+          <p class="text-xs text-slate-500">Conversion Rate</p>
+          <p class="text-lg font-semibold">4.8%</p>
+        </div>
+      </div>
+
+      <div class="bg-white border border-slate-100 rounded-2xl p-4 flex items-center gap-3 shadow-sm hover:shadow-md">
+        <Star class="w-6 h-6 text-yellow-400" />
+        <div>
+          <p class="text-xs text-slate-500">Avg. Rating</p>
+          <p class="text-lg font-semibold">4.7 / 5</p>
+        </div>
       </div>
     </section>
 
-    <!-- Recent Listings -->
+    <!-- Chart -->
+    <section class="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm hover:shadow-md">
+      <h2 class="text-sm sm:text-base font-semibold mb-3">Weekly Sales Overview</h2>
+      <div class="h-56 w-full">
+        <Bar :data="chartData" :options="chartOptions" />
+      </div>
+    </section>
+
+    <!-- Recent Products -->
     <section>
-      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-2 sm:mb-3 gap-2">
-        <h2 class="text-sm sm:text-base font-semibold">Recent listings</h2>
-        <BaseButton variant="ghost" size="sm" class="whitespace-nowrap px-2 py-1 text-xs sm:text-sm">
-          Add new listing
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-sm sm:text-base font-semibold">Recent Listings</h2>
+        <BaseButton variant="ghost" size="sm" class="whitespace-nowrap text-xs sm:text-sm px-2 py-1">
+          Add New Listing
         </BaseButton>
       </div>
 
-      <!-- Listings -->
-      <div class="space-y-1.5">
+      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
         <div
           v-for="product in userProducts"
           :key="product.id"
-          class="bg-white rounded-xl border border-slate-100 p-2.5 flex items-center gap-2.5 hover:shadow-md transition cursor-pointer"
+          class="bg-white rounded-xl border border-slate-100 p-3 hover:shadow-md transition flex flex-col"
         >
-          <!-- Product Image -->
-          <div class="h-12 w-12 sm:h-14 sm:w-14 rounded-lg overflow-hidden bg-slate-100 flex-shrink-0">
-            <img :src="product.images[0]" :alt="product.name" class="w-full h-full object-cover">
+          <div class="h-40 w-full rounded-lg overflow-hidden bg-slate-100">
+            <img :src="product.images[0]" :alt="product.name" class="w-full h-full object-cover" />
           </div>
-
-          <!-- Product Info -->
-          <div class="flex-1 min-w-0 flex flex-col justify-between">
-            <p class="text-sm font-medium line-clamp-1">{{ product.name }}</p>
-            <p class="text-[10px] sm:text-xs text-slate-500 line-clamp-2">
-              {{ product.currency }} {{ product.price }} · {{ product.rating.toFixed(1) }} rating
-            </p>
+          <div class="mt-2 flex-1 flex flex-col justify-between">
+            <p class="font-medium text-sm truncate">{{ product.name }}</p>
+            <div class="flex items-center justify-between text-xs text-slate-500 mt-1">
+              <span>{{ product.currency }} {{ product.price }}</span>
+              <div class="flex items-center gap-1">
+                <Star class="w-3.5 h-3.5 text-yellow-400" />
+                {{ product.rating.toFixed(1) }}
+              </div>
+            </div>
           </div>
+        </div>
+      </div>
+    </section>
 
-          <!-- Edit Button -->
-          <button class="text-[10px] sm:text-xs text-slate-500 hover:text-slate-900 whitespace-nowrap">
-            Edit
-          </button>
+    <!-- Customer Feedback -->
+    <section class="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm hover:shadow-md">
+      <h2 class="text-sm sm:text-base font-semibold mb-3">Customer Feedback</h2>
+      <div class="space-y-3">
+        <div
+          v-for="comment in comments"
+          :key="comment.name"
+          class="border border-slate-100 rounded-xl p-3 hover:bg-slate-50 transition"
+        >
+          <div class="flex items-center justify-between">
+            <p class="text-sm font-medium text-slate-800">{{ comment.name }}</p>
+            <div class="flex">
+              <Star
+                v-for="n in comment.rating"
+                :key="n"
+                class="w-4 h-4 text-yellow-400"
+              />
+            </div>
+          </div>
+          <p class="text-xs text-slate-600 mt-1">{{ comment.message }}</p>
         </div>
       </div>
     </section>
@@ -92,23 +178,7 @@ const userProducts = computed(() => products.slice(0, 3))
 </template>
 
 <style scoped>
-/* Smooth hover effect for cards */
 div:hover {
   transition: all 0.2s ease-in-out;
-}
-
-/* Text clamping for small screens */
-.line-clamp-1 {
-  display: -webkit-box;
-  -webkit-line-clamp: 1;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.line-clamp-2 {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
 }
 </style>

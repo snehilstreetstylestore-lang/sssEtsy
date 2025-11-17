@@ -2,8 +2,10 @@
 import { useCartStore } from '~/stores/cart'
 import { products } from '~/data/products'
 import BaseButton from '~/components/ui/BaseButton.vue'
+import { useRouter } from 'vue-router'
 
 const cartStore = useCartStore()
+const router = useRouter()
 
 // Detailed cart items
 const detailedItems = computed(() => cartStore.detailedItems)
@@ -19,6 +21,12 @@ const handleQuantity = (productId: number, delta: number) => {
 // Remove item
 const removeItem = (productId: number) => cartStore.removeFromCart(productId)
 
+// Navigate to checkout page
+const goToCheckout = () => {
+  if (cartStore.count === 0) return
+  router.push('/checkout')
+}
+
 // Buy Along Products (top 8 products not in cart)
 const buyAlongProducts = computed(() =>
   products.filter((p) => !detailedItems.value.some(i => i.product?.id === p.id)).slice(0, 8)
@@ -31,7 +39,7 @@ const buyAlongProducts = computed(() =>
     <header class="space-y-1">
       <h1 class="text-2xl font-semibold tracking-tight">Cart</h1>
       <p class="text-sm text-slate-600">
-        This cart is stored in localStorage only and does not perform any real checkout.
+        Review your items and proceed to secure checkout.
       </p>
     </header>
 
@@ -95,11 +103,12 @@ const buyAlongProducts = computed(() =>
           <span>Total</span>
           <span class="font-semibold">USD {{ cartStore.total.toFixed(2) }}</span>
         </div>
-        <p class="text-[11px] text-slate-500">
-          This is a front-end only demo. No payment or shipping information will be requested.
-        </p>
-        <BaseButton class="w-full">
-          Proceed to mock checkout
+        <BaseButton
+          class="w-full"
+          :disabled="cartStore.count === 0"
+          @click="goToCheckout"
+        >
+          Proceed to Checkout
         </BaseButton>
       </aside>
     </div>

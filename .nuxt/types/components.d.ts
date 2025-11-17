@@ -14,6 +14,7 @@ type HydrationStrategies = {
 type LazyComponent<T> = DefineComponent<HydrationStrategies, {}, {}, {}, {}, {}, {}, { hydrated: () => void }> & T
 
 interface _GlobalComponents {
+  'HomeBlogs': typeof import("../../components/home/Blogs.vue")['default']
   'HomeWhyChooseEtsy': typeof import("../../components/home/WhyChooseEtsy.vue")['default']
   'LayoutAppFooter': typeof import("../../components/layout/AppFooter.vue")['default']
   'LayoutNavbar': typeof import("../../components/layout/Navbar.vue")['default']
@@ -23,6 +24,7 @@ interface _GlobalComponents {
   'UiCategoryCard': typeof import("../../components/ui/CategoryCard.vue")['default']
   'UiFiltersSidebar': typeof import("../../components/ui/FiltersSidebar.vue")['default']
   'UiHeroSection': typeof import("../../components/ui/HeroSection.vue")['default']
+  'UiNewsletterSection': typeof import("../../components/ui/NewsletterSection.vue")['default']
   'UiPagination': typeof import("../../components/ui/Pagination.vue")['default']
   'UiProductCard': typeof import("../../components/ui/ProductCard.vue")['default']
   'UiProductGrid': typeof import("../../components/ui/ProductGrid.vue")['default']
@@ -49,6 +51,7 @@ interface _GlobalComponents {
   'Html': typeof import("../../node_modules/nuxt/dist/head/runtime/components")['Html']
   'Body': typeof import("../../node_modules/nuxt/dist/head/runtime/components")['Body']
   'NuxtIsland': typeof import("../../node_modules/nuxt/dist/app/components/nuxt-island")['default']
+  'LazyHomeBlogs': LazyComponent<typeof import("../../components/home/Blogs.vue")['default']>
   'LazyHomeWhyChooseEtsy': LazyComponent<typeof import("../../components/home/WhyChooseEtsy.vue")['default']>
   'LazyLayoutAppFooter': LazyComponent<typeof import("../../components/layout/AppFooter.vue")['default']>
   'LazyLayoutNavbar': LazyComponent<typeof import("../../components/layout/Navbar.vue")['default']>
@@ -58,6 +61,7 @@ interface _GlobalComponents {
   'LazyUiCategoryCard': LazyComponent<typeof import("../../components/ui/CategoryCard.vue")['default']>
   'LazyUiFiltersSidebar': LazyComponent<typeof import("../../components/ui/FiltersSidebar.vue")['default']>
   'LazyUiHeroSection': LazyComponent<typeof import("../../components/ui/HeroSection.vue")['default']>
+  'LazyUiNewsletterSection': LazyComponent<typeof import("../../components/ui/NewsletterSection.vue")['default']>
   'LazyUiPagination': LazyComponent<typeof import("../../components/ui/Pagination.vue")['default']>
   'LazyUiProductCard': LazyComponent<typeof import("../../components/ui/ProductCard.vue")['default']>
   'LazyUiProductGrid': LazyComponent<typeof import("../../components/ui/ProductGrid.vue")['default']>

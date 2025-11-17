@@ -15,17 +15,19 @@ const resultProducts = computed(() => {
 </script>
 
 <template>
-  <div class="space-y-4">
-    <header class="flex items-center justify-between gap-3">
+  <div class="px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+    <!-- Header -->
+    <header class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
       <div>
-        <h1 class="text-xl font-semibold tracking-tight">
+        <h1 class="text-2xl sm:text-3xl font-semibold tracking-tight mb-1">
           Search
         </h1>
-        <p class="text-sm text-slate-600">
+        <p class="text-sm sm:text-base text-slate-600">
           Results are filtered locally from mock JSON.
         </p>
       </div>
-      <p v-if="hasSearch" class="text-xs text-slate-500">
+
+      <p v-if="hasSearch" class="text-xs sm:text-sm text-slate-500">
         Showing results for
         <span class="font-medium text-slate-900">
           "{{ q }}"
@@ -33,6 +35,15 @@ const resultProducts = computed(() => {
       </p>
     </header>
 
+    <!-- Product Results -->
     <ProductGrid :products="resultProducts" />
+
+    <!-- Empty State -->
+    <p
+      v-if="resultProducts.length === 0"
+      class="text-center text-slate-500 text-sm sm:text-base py-10"
+    >
+      No products found for "{{ q }}".
+    </p>
   </div>
 </template>

@@ -43,6 +43,9 @@ export const categories: Category[] = [
     image:
       'https://i.pinimg.com/1200x/f7/ea/d0/f7ead02fe6955e841c431fba560bf439.jpg'
   },
+
+  /* ⭐ Your updated categories below ⭐ */
+
   {
     id: 5,
     slug: 'weddings-party',
@@ -50,7 +53,7 @@ export const categories: Category[] = [
     description:
       'Invitations, decor, favors, and attire for weddings and celebrations.',
     image:
-      'https://i.pinimg.com/1200x/b7/2d/49/b72d497fddc87923d8b52e2c51af7b87.jpg'
+      'https://i.pinimg.com/1200x/bb/a7/88/bba788ae746ae2ea8b62f212681ca21d.jpg' // NEW
   },
   {
     id: 6,
@@ -59,7 +62,7 @@ export const categories: Category[] = [
     description:
       'Whimsical plushies, handmade toys, and creative playtime pieces.',
     image:
-      'https://i.pinimg.com/1200x/9c/5b/8b/9c5b8b2b8c2dc9290e8d83f9d7a8a7ad.jpg'
+      'https://i.pinimg.com/736x/38/a9/9e/38a99ef27007cfae409d65c0b935c9d8.jpg' // NEW
   },
   {
     id: 7,
@@ -68,7 +71,7 @@ export const categories: Category[] = [
     description:
       'Everything you need for DIY projects — yarns, beads, patterns, and tools.',
     image:
-      'https://i.pinimg.com/1200x/5e/26/14/5e2614ff4a7480a0d06c3e43b66b50d1.jpg'
+      'https://i.pinimg.com/1200x/ef/b5/db/efb5dbe54b686f3a87342f04eed1c3cb.jpg' // NEW
   },
   {
     id: 8,
@@ -77,7 +80,7 @@ export const categories: Category[] = [
     description:
       'Curated antiques, retro treasures, and timeless secondhand pieces.',
     image:
-      'https://i.pinimg.com/1200x/4b/5c/2d/4b5c2dc3c693db1cb92357a5c45cfbf3.jpg'
+      'https://i.pinimg.com/736x/57/de/2d/57de2d3acd67e0d1524a80bcd59225d6.jpg' // NEW
   },
   {
     id: 9,
@@ -86,7 +89,7 @@ export const categories: Category[] = [
     description:
       'Natural skincare, handmade soaps, and wellness products crafted with love.',
     image:
-      'https://i.pinimg.com/1200x/79/65/12/796512b6f12646e71b8b72850e0a0e9c.jpg'
+      'https://i.pinimg.com/736x/47/cf/6b/47cf6b8b8809d8ca7659b8a8421306c9.jpg' // NEW
   },
   {
     id: 10,
@@ -95,6 +98,6 @@ export const categories: Category[] = [
     description:
       'Cozy beds, accessories, and playful treats for your furry friends.',
     image:
-      'https://i.pinimg.com/1200x/54/56/8c/54568c4420f6ff05f84495d1f0f7b8e3.jpg'
+      'https://i.pinimg.com/736x/6a/89/48/6a8948b559735c80860cdf2169efc874.jpg' // NEW
   }
 ]

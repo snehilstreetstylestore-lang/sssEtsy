@@ -18,6 +18,7 @@ export const HomeBlogs: typeof import("../components/home/Blogs.vue")['default']
 export const HomeWhyChooseEtsy: typeof import("../components/home/WhyChooseEtsy.vue")['default']
 export const LayoutAppFooter: typeof import("../components/layout/AppFooter.vue")['default']
 export const LayoutNavbar: typeof import("../components/layout/Navbar.vue")['default']
+export const ProductDetailShop: typeof import("../components/productDetail/shop.vue")['default']
 export const UiBaseButton: typeof import("../components/ui/BaseButton.vue")['default']
 export const UiBaseLoader: typeof import("../components/ui/BaseLoader.vue")['default']
 export const UiBaseModal: typeof import("../components/ui/BaseModal.vue")['default']
@@ -55,6 +56,7 @@ export const LazyHomeBlogs: LazyComponent<typeof import("../components/home/Blog
 export const LazyHomeWhyChooseEtsy: LazyComponent<typeof import("../components/home/WhyChooseEtsy.vue")['default']>
 export const LazyLayoutAppFooter: LazyComponent<typeof import("../components/layout/AppFooter.vue")['default']>
 export const LazyLayoutNavbar: LazyComponent<typeof import("../components/layout/Navbar.vue")['default']>
+export const LazyProductDetailShop: LazyComponent<typeof import("../components/productDetail/shop.vue")['default']>
 export const LazyUiBaseButton: LazyComponent<typeof import("../components/ui/BaseButton.vue")['default']>
 export const LazyUiBaseLoader: LazyComponent<typeof import("../components/ui/BaseLoader.vue")['default']>
 export const LazyUiBaseModal: LazyComponent<typeof import("../components/ui/BaseModal.vue")['default']>

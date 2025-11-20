@@ -18,6 +18,7 @@ interface _GlobalComponents {
   'HomeWhyChooseEtsy': typeof import("../../components/home/WhyChooseEtsy.vue")['default']
   'LayoutAppFooter': typeof import("../../components/layout/AppFooter.vue")['default']
   'LayoutNavbar': typeof import("../../components/layout/Navbar.vue")['default']
+  'ProductDetailShop': typeof import("../../components/productDetail/shop.vue")['default']
   'UiBaseButton': typeof import("../../components/ui/BaseButton.vue")['default']
   'UiBaseLoader': typeof import("../../components/ui/BaseLoader.vue")['default']
   'UiBaseModal': typeof import("../../components/ui/BaseModal.vue")['default']
@@ -55,6 +56,7 @@ interface _GlobalComponents {
   'LazyHomeWhyChooseEtsy': LazyComponent<typeof import("../../components/home/WhyChooseEtsy.vue")['default']>
   'LazyLayoutAppFooter': LazyComponent<typeof import("../../components/layout/AppFooter.vue")['default']>
   'LazyLayoutNavbar': LazyComponent<typeof import("../../components/layout/Navbar.vue")['default']>
+  'LazyProductDetailShop': LazyComponent<typeof import("../../components/productDetail/shop.vue")['default']>
   'LazyUiBaseButton': LazyComponent<typeof import("../../components/ui/BaseButton.vue")['default']>
   'LazyUiBaseLoader': LazyComponent<typeof import("../../components/ui/BaseLoader.vue")['default']>
   'LazyUiBaseModal': LazyComponent<typeof import("../../components/ui/BaseModal.vue")['default']>

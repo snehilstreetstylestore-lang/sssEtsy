@@ -1,59 +1,76 @@
 <script setup lang="ts">
-
 definePageMeta({
   ssr: false
 })
 
-
 import { useRoute, onMounted, onUnmounted } from '#imports'
 import { ref, computed, watch } from 'vue'
-import { categories } from '~/data/categories'
-import { getProductsByCategory } from '~/data/products'
-import ProductCard from '~/components/ui/ProductCard.vue'
+import { useProductStore } from '~/stores/products'
 
 // 🧭 Routing
 const route = useRoute()
 const slug = computed(() => route.params.slug as string)
 
-// 🗂 Category + Products
-const category = computed(() => categories.find((c) => c.slug === slug.value))
-const allProducts = ref(getProductsByCategory(slug.value) || [])
+// 🛍 Medusa Product Store
+const productStore = useProductStore()
 
-// 🧭 UI State for Left Arrow Drawer
+// 🧭 Category Name mapping (based on slug = Medusa Collection ID)
+const category = computed(() => {
+  return {
+    slug: slug.value,
+    name: slug.value.replace(/-/g, ' ').toUpperCase(),
+    description: `Explore all products in ${slug.value}.`
+  }
+})
+
+// 🔀 Fetch Products by Category from Medusa API
+const filteredBySlug = computed(() =>
+  productStore.products.filter((p: any) =>
+    p.collection?.handle === slug.value
+  )
+)
+
+watch(
+  slug,
+  () => {
+    productStore.fetchProducts() // Refresh if slug changes
+  },
+  { immediate: true }
+)
+
+// 🧭 UI State for Filter Drawer
 const showDrawer = ref(false)
 
-// ✅ Watch for category changes
-watch(slug, () => {
-  allProducts.value = getProductsByCategory(slug.value) || []
-})
-
-// ✅ Detect screen width
+// 📱 Detect screen width
 const isMobile = ref(false)
+const checkScreen = () => (isMobile.value = window.innerWidth < 1024)
+
 onMounted(() => {
-  const checkScreen = () => (isMobile.value = window.innerWidth < 1024)
   checkScreen()
   window.addEventListener('resize', checkScreen)
-  onUnmounted(() => window.removeEventListener('resize', checkScreen))
 })
+onUnmounted(() => window.removeEventListener('resize', checkScreen))
 
-// 🎛️ Filters
+// 🎛 Filters
 const minPrice = ref(0)
-const maxPrice = ref(1000)
+const maxPrice = ref(20000)
 const sortOption = ref('default')
 
-// 🔍 Real-time Filtered Products
+// 🔍 UI filtered + sorted products
 const filteredProducts = computed(() => {
-  let list = [...allProducts.value]
+  let list = [...filteredBySlug.value]
 
-  // Price filter
-  list = list.filter(
-    (p) => p.price >= minPrice.value && p.price <= maxPrice.value
-  )
+  list = list.filter((p: any) => {
+    const price = (p.variants?.[0]?.prices?.[0]?.amount || 0) / 100
+    return price >= minPrice.value && price <= maxPrice.value
+  })
 
-  // Sorting logic
-  if (sortOption.value === 'priceAsc') list.sort((a, b) => a.price - b.price)
-  else if (sortOption.value === 'priceDesc') list.sort((a, b) => b.price - a.price)
-  else if (sortOption.value === 'nameAsc') list.sort((a, b) => a.name.localeCompare(b.name))
+  if (sortOption.value === 'priceAsc')
+    list.sort((a: any, b: any) => a.variants[0].prices[0].amount - b.variants[0].prices[0].amount)
+  else if (sortOption.value === 'priceDesc')
+    list.sort((a: any, b: any) => b.variants[0].prices[0].amount - a.variants[0].prices[0].amount)
+  else if (sortOption.value === 'nameAsc')
+    list.sort((a: any, b: any) => a.title.localeCompare(b.title))
 
   return list
 })
@@ -72,73 +89,16 @@ const paginatedProducts = computed(() => {
     v-if="category"
     class="relative bg-slate-50 min-h-screen px-4 sm:px-8 py-8 flex flex-col items-center"
   >
-    <!-- 🧭 Header -->
+    <!-- Header -->
     <header class="text-center mb-8">
       <p class="text-xs text-slate-500 uppercase tracking-wide">Category</p>
-      <h1 class="text-3xl font-semibold tracking-tight mt-1">
-        {{ category.name }}
-      </h1>
+      <h1 class="text-3xl font-semibold tracking-tight mt-1">{{ category.name }}</h1>
       <p class="text-sm text-slate-600 max-w-2xl mx-auto mt-2">
-        {{ category.description || 'Explore trending handmade and creative items.' }}
+        {{ category.description }}
       </p>
     </header>
 
-    <!-- 🧭 Floating Drawer Toggle -->
-    <button
-      @click="showDrawer = !showDrawer"
-      class="fixed left-0 top-1/2 transform -translate-y-1/2 z-40 bg-amber-500 text-white p-2 rounded-r-xl shadow-lg hover:bg-amber-600 transition"
-    >
-      <span v-if="!showDrawer">←</span>
-      <span v-else>→</span>
-    </button>
-
-    <!-- 🧰 Slide-out Filter Drawer -->
-    <transition name="slide">
-      <aside
-        v-if="showDrawer"
-        class="fixed top-0 left-0 h-full w-72 bg-white border-r border-slate-200 shadow-xl p-5 z-30 flex flex-col space-y-5"
-      >
-        <div class="flex justify-between items-center mb-3">
-          <h3 class="text-lg font-semibold">Filters</h3>
-          <button @click="showDrawer = false" class="text-slate-400 hover:text-slate-600">✖</button>
-        </div>
-
-        <!-- 💰 Price Filter -->
-        <div>
-          <h4 class="font-medium text-sm mb-1">Price Range</h4>
-          <div class="flex gap-2 items-center">
-            <input
-              v-model.number="minPrice"
-              type="number"
-              placeholder="Min"
-              class="w-1/2 border rounded px-2 py-1 text-sm"
-            />
-            <input
-              v-model.number="maxPrice"
-              type="number"
-              placeholder="Max"
-              class="w-1/2 border rounded px-2 py-1 text-sm"
-            />
-          </div>
-        </div>
-
-        <!-- 🔽 Sorting -->
-        <div>
-          <h4 class="font-medium text-sm mb-1">Sort By</h4>
-          <select
-            v-model="sortOption"
-            class="w-full border rounded px-2 py-1 text-sm"
-          >
-            <option value="default">Default</option>
-            <option value="priceAsc">Price: Low to High</option>
-            <option value="priceDesc">Price: High to Low</option>
-            <option value="nameAsc">Name: A–Z</option>
-          </select>
-        </div>
-      </aside>
-    </transition>
-
-    <!-- 🛍️ Product Grid -->
+    <!-- Product Grid -->
     <section class="w-full max-w-7xl">
       <p class="text-sm text-slate-600 mb-4 text-right">
         {{ filteredProducts.length }} items found
@@ -185,7 +145,6 @@ const paginatedProducts = computed(() => {
 </template>
 
 <style scoped>
-/* 🎬 Drawer Slide Animation */
 .slide-enter-active,
 .slide-leave-active {
   transition: transform 0.3s ease, opacity 0.3s ease;
@@ -198,8 +157,6 @@ const paginatedProducts = computed(() => {
   transform: translateX(-100%);
   opacity: 0;
 }
-
-/* 🎬 Product enter animation */
 motion-div {
   display: block;
 }

@@ -1,290 +1,251 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useCartStore } from '~/stores/cart'
 import { useUserStore } from '~/stores/user'
-import BaseButton from '~/components/ui/BaseButton.vue'
-import { useMotion } from '@vueuse/motion'
-import { useRouter } from 'vue-router'
+import { useOrderStore } from '~/stores/order'
 
 const router = useRouter()
-
 const cartStore = useCartStore()
 const userStore = useUserStore()
+const orderStore = useOrderStore()
 
-if (process.client) {
-  cartStore.hydrate()
-  userStore.hydrate()
-}
+// Default testing values
+const fullName = ref("Test User")
+const email = ref("test@example.com")
+const address = ref("123 Test Road")
+const city = ref("Mumbai")
+const country = ref("IN")
+const zip = ref("400001")
 
-// Form state
-const fullName = ref(userStore.currentUser?.name || '')
-const email = ref(userStore.currentUser?.email || '')
-const address = ref('')
-const city = ref('')
-const country = ref('')
-const zip = ref('')
+onMounted(async () => {
+  await cartStore.hydrate()
+  await userStore.hydrate()
 
-const paymentMethod = ref<'card' | 'paypal' | 'cod'>('card')
+  // Overwrite defaults only if logged-in user exists
+  if (userStore.currentUser) {
+    fullName.value = userStore.currentUser.name || fullName.value
+    email.value = userStore.currentUser.email || email.value
+  }
+})
 
-// COD surcharge
+// Payment
+const paymentMethod = ref<'card' | 'cod'>('card')
 const codFee = 99
+const shippingFee = 49
+const freeShippingThreshold = 500
 
-// Coupon
 const couponCode = ref('')
 const discount = ref(0)
 
-// Shipping
-const freeShippingThreshold = 500
-const shippingFee = ref(49)
-
-const detailedItems = computed(() => cartStore.detailedItems)
-const subtotal = computed(() => cartStore.total)
-
+// Cart info
+const items = computed(() => cartStore.items)
+const subtotal = computed(() => cartStore.subtotal)
 const shipping = computed(() =>
-  subtotal.value >= freeShippingThreshold ? 0 : shippingFee.value
+  subtotal.value >= freeShippingThreshold ? 0 : shippingFee
 )
-
 const total = computed(() => {
-  let t = subtotal.value + shipping.value
-  if (paymentMethod.value === 'cod') t += codFee
-  t -= discount.value
-  return t
+  let total = subtotal.value + shipping.value
+  if (paymentMethod.value === 'cod') total += codFee
+  total -= discount.value
+  return total
 })
 
-// Sections
 const isShippingOpen = ref(true)
 const isPaymentOpen = ref(true)
+const isSummaryOpen = ref(true)
+const isProcessing = ref(false)
 
-// Apply coupon
 const applyCoupon = () => {
-  if (!couponCode.value) return window.alert('Enter a coupon code!')
-  if (couponCode.value.toUpperCase() === 'SAVE50') {
+  const code = couponCode.value.toUpperCase()
+  if (!code) return alert("Enter coupon")
+
+  if (code === "SAVE50") {
     discount.value = 50
-    window.alert('Coupon applied: ₹50 discount!')
-  } else if (couponCode.value.toUpperCase() === 'SAVE10P') {
+    alert("₹50 Discount Applied")
+  } else if (code === "SAVE10P") {
     discount.value = subtotal.value * 0.1
-    window.alert(`Coupon applied: 10% off (₹${discount.value.toFixed(2)})`)
+    alert("10% Discount Applied")
   } else {
-    window.alert('Invalid coupon code')
+    alert("Invalid Coupon Code")
   }
 }
 
-// Enhanced checkout
-const handleCheckout = () => {
-  if (!fullName.value || !email.value || !address.value || !city.value || !country.value || !zip.value) {
-    window.alert('Please fill in all fields')
-    return
+const handleCheckout = async () => {
+  if (!items.value.length) return alert("Cart empty!")
+  if (!email.value) return alert("Email required!")
+
+  try {
+    isProcessing.value = true
+    await cartStore.loadOrCreateCart()
+
+    await cartStore.setShippingAddress({
+      first_name: fullName.value.split(" ")[0] || fullName.value,
+      last_name: fullName.value.split(" ")[1] || "",
+      address_1: address.value,
+      city: city.value,
+      country_code: country.value.toUpperCase(),
+      postal_code: zip.value,
+      email: email.value,
+    })
+
+    const order = await orderStore.createOrder()
+    if (!order?.id) return alert("Order failed!")
+
+    router.push(`/order-success/${order.id}`)
+  } catch (err: any) {
+    alert(err?.message || "Checkout Failed!")
+  } finally {
+    isProcessing.value = false
   }
-
-  // Clear everything
-  cartStore.clearCart()
-  couponCode.value = ''
-  discount.value = 0
-
-  // Redirect to Thank You Page
-  router.push('/thank-you')
 }
 </script>
 
 <template>
   <div class="flex flex-col px-4 sm:px-6 lg:px-8 py-6 gap-6 w-full">
 
-    <!-- Shipping Information -->
-    <div
-      v-motion
-      :initial="{ opacity: 0, y: 30 }"
-      :enter="{ opacity: 1, y: 0, transition: { duration: 0.5 } }"
-      class="bg-white rounded-2xl border border-slate-100 shadow-sm"
-    >
-      <button
-        @click="isShippingOpen = !isShippingOpen"
-        class="w-full text-left p-6 flex justify-between items-center font-semibold text-lg"
-      >
-        <span>Shipping Information</span>
-        <span>{{ isShippingOpen ? '−' : '+' }}</span>
+    <!-- Shipping Info -->
+    <div class="section">
+      <button class="section-header" @click="isShippingOpen = !isShippingOpen">
+        Shipping Information
+        <span>{{ isShippingOpen ? "−" : "+" }}</span>
       </button>
 
-      <motion-div
-        v-show="isShippingOpen"
-        :initial="{ opacity: 0, height: 0 }"
-        :enter="{ opacity: 1, height: 'auto', transition: { duration: 0.4 } }"
-        :leave="{ opacity: 0, height: 0, transition: { duration: 0.3 } }"
-        class="p-6 border-t border-slate-100 space-y-4"
-      >
+      <div v-show="isShippingOpen" class="section-content">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <input v-model="fullName" type="text" placeholder="Full Name" class="input" />
-          <input v-model="email" type="email" placeholder="Email" class="input" />
-          <input v-model="address" type="text" placeholder="Address" class="input sm:col-span-2" />
-          <input v-model="city" type="text" placeholder="City" class="input" />
-          <input v-model="country" type="text" placeholder="Country" class="input" />
-          <input v-model="zip" type="text" placeholder="ZIP / Postal Code" class="input" />
+          <input v-model="fullName" class="input" placeholder="Full Name" />
+          <input v-model="email" class="input" placeholder="Email" />
+          <input v-model="address" class="input sm:col-span-2" placeholder="Address" />
+          <input v-model="city" class="input" placeholder="City" />
+          <input v-model="country" class="input" placeholder="Country Code (IN)" />
+          <input v-model="zip" class="input" placeholder="ZIP Code" />
         </div>
-      </motion-div>
+      </div>
     </div>
 
-    <!-- Payment Method -->
-    <div
-      v-motion
-      :initial="{ opacity: 0, y: 30 }"
-      :enter="{ opacity: 1, y: 0, transition: { delay: 0.2, duration: 0.5 } }"
-      class="bg-white rounded-2xl border border-slate-100 shadow-sm"
-    >
-      <button
-        @click="isPaymentOpen = !isPaymentOpen"
-        class="w-full text-left p-6 flex justify-between items-center font-semibold text-lg"
-      >
-        <span>Payment Method</span>
-        <span>{{ isPaymentOpen ? '−' : '+' }}</span>
+    <!-- Payment -->
+    <div class="section">
+      <button class="section-header" @click="isPaymentOpen = !isPaymentOpen">
+        Payment Method
+        <span>{{ isPaymentOpen ? "−" : "+" }}</span>
       </button>
 
-      <motion-div
-        v-show="isPaymentOpen"
-        :initial="{ opacity: 0, height: 0 }"
-        :enter="{ opacity: 1, height: 'auto', transition: { duration: 0.4 } }"
-        :leave="{ opacity: 0, height: 0, transition: { duration: 0.3 } }"
-        class="p-6 border-t border-slate-100 flex flex-col gap-3"
-      >
+      <div v-show="isPaymentOpen" class="section-content">
         <label class="payment-option">
-          <input type="radio" v-model="paymentMethod" value="card" />
-          Credit / Debit Card
+          <input type="radio" v-model="paymentMethod" value="card" /> Pay Online (Default)
         </label>
         <label class="payment-option">
-          <input type="radio" v-model="paymentMethod" value="paypal" />
-          PayPal
+          <input type="radio" v-model="paymentMethod" value="cod" /> Cash on Delivery (+₹99)
         </label>
-        <label class="payment-option">
-          <input type="radio" v-model="paymentMethod" value="cod" />
-          Cash on Delivery (+₹99)
-        </label>
-      </motion-div>
+      </div>
     </div>
 
     <!-- Order Summary -->
-    <div
-      v-motion
-      :initial="{ opacity: 0, y: 30 }"
-      :enter="{ opacity: 1, y: 0, transition: { delay: 0.4, duration: 0.5 } }"
-      class="bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col"
-    >
-      <div class="w-full text-left p-6 flex justify-between items-center font-semibold text-lg border-b border-slate-100">
-        <span>Order Summary</span>
-      </div>
+    <div class="section">
+      <button class="section-header" @click="isSummaryOpen = !isSummaryOpen">
+        Order Summary
+        <span>{{ isSummaryOpen ? "−" : "+" }}</span>
+      </button>
 
-      <div class="p-6 flex flex-col">
-
-        <!-- Cart Items -->
-        <div class="divide-y divide-slate-100 max-h-80 overflow-y-auto flex-1">
-          <motion-div
-            v-for="item in detailedItems"
-            :key="item.product?.id"
-            :initial="{ opacity: 0, y: 10 }"
-            :enter="{ opacity: 1, y: 0, transition: { duration: 0.3 } }"
-            class="flex justify-between py-2 items-center"
-          >
-            <div class="flex items-center gap-3">
-              <img
-                :src="item.product?.images[0]"
-                :alt="item.product?.name"
-                class="w-12 h-12 object-cover rounded-lg shadow"
-              />
-              <p class="text-sm font-medium">{{ item.product?.name }}</p>
-            </div>
-            <p class="text-sm font-semibold">₹{{ (item.product?.price * item.quantity).toFixed(2) }}</p>
-          </motion-div>
+      <div v-show="isSummaryOpen" class="section-content space-y-4">
+        <div v-for="item in items" :key="item.id" class="flex justify-between text-sm">
+          <span>{{ item.title }} × {{ item.quantity }}</span>
+          <span>₹{{ item.total }}</span>
         </div>
 
-        <!-- Summary -->
-        <div class="mt-4 space-y-1">
-          <div class="flex justify-between font-medium text-sm">
-            <span>Subtotal</span>
-            <span>₹{{ subtotal.toFixed(2) }}</span>
-          </div>
+        <div class="divider"></div>
 
-          <div v-if="paymentMethod === 'cod'" class="flex justify-between font-medium text-sm text-emerald-600">
-            <span>COD Fee</span>
-            <span>₹99</span>
-          </div>
-
-          <div class="flex justify-between font-medium text-sm text-slate-600">
-            <span>Shipping</span>
-            <span>{{ shipping.value === 0 ? 'Free' : `₹${shipping.value}` }}</span>
-          </div>
-
-          <div v-if="discount" class="flex justify-between font-medium text-sm text-green-600">
-            <span>Discount</span>
-            <span>-₹{{ discount.toFixed(2) }}</span>
-          </div>
+        <div class="flex justify-between text-sm">
+          <span>Subtotal</span>
+          <span>₹{{ subtotal }}</span>
+        </div>
+        <div class="flex justify-between text-sm">
+          <span>Shipping</span>
+          <span>₹{{ shipping }}</span>
+        </div>
+        <div class="flex justify-between text-sm" v-if="discount > 0">
+          <span>Discount</span>
+          <span>-₹{{ discount }}</span>
+        </div>
+        <div class="flex justify-between text-sm" v-if="paymentMethod === 'cod'">
+          <span>COD Fee</span>
+          <span>₹{{ codFee }}</span>
         </div>
 
-        <!-- Coupon -->
-        <div class="bg-slate-50 rounded-lg p-4 mt-3 flex gap-3 items-center">
-          <input v-model="couponCode" type="text" placeholder="Enter coupon code" class="input flex-1" />
-          <BaseButton @click="applyCoupon">Apply</BaseButton>
-        </div>
-
-        <p v-if="discount" class="text-green-600 text-sm mt-1">
-          Discount applied: ₹{{ discount.toFixed(2) }}
-        </p>
-
-        <!-- Total -->
-        <div class="flex justify-between font-semibold text-lg mt-3 border-t border-slate-200 pt-3">
+        <div class="total-row">
           <span>Total</span>
-          <span>₹{{ total.toFixed(2) }}</span>
+          <span>₹{{ total }}</span>
         </div>
 
-        <!-- Place Order Button -->
-        <motion-div
-          :initial="{ scale: 1 }"
-          :hovered="{ scale: 1.04 }"
-          class="w-full mt-5"
-        >
-          <button
-            @click="handleCheckout"
-            class="place-order-btn w-full py-3 text-white font-semibold rounded-xl shadow-lg"
-          >
-            Place Order
-          </button>
-        </motion-div>
-
+        <div class="coupon-box">
+          <input class="input" placeholder="Coupon Code" v-model="couponCode" />
+          <button class="apply-btn" @click="applyCoupon">Apply</button>
+        </div>
       </div>
     </div>
+
+    <!-- Checkout -->
+    <button @click="handleCheckout" :disabled="isProcessing"
+      class="place-order-btn disabled:opacity-50 disabled:cursor-not-allowed">
+      {{ isProcessing ? "Processing..." : "Place Order" }}
+    </button>
   </div>
 </template>
 
 <style scoped>
-.input {
-  width: 100%;
+.section {
+  background: white;
   border: 1px solid #e2e8f0;
-  border-radius: 0.75rem;
-  padding: 0.6rem 0.8rem;
-  font-size: 0.9rem;
-  color: #1e293b;
-  transition: all 0.2s ease;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
 }
-.input:focus {
-  border-color: #10b981;
-  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25);
+.section-header {
+  width: 100%;
+  padding: 18px;
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
 }
-
+.section-content {
+  padding: 18px;
+  border-top: 1px solid #e2e8f0;
+}
+.input {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 10px;
+}
 .payment-option {
   display: flex;
-  gap: 10px;
-  font-size: 0.95rem;
-  cursor: pointer;
-  padding: 8px 12px;
-  border-radius: 10px;
-  transition: 0.2s ease;
+  gap: 8px;
+  font-size: 15px;
 }
-.payment-option:hover {
-  background: #f0fdf4;
-  color: #059669;
+.divider {
+  border-top: 1px solid #e5e7eb;
 }
-
+.total-row {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 700;
+  margin-top: 6px;
+}
+.coupon-box {
+  display: flex;
+  gap: 8px;
+}
+.apply-btn {
+  background: #0284c7;
+  color: white;
+  padding: 8px 14px;
+  border-radius: 8px;
+}
 .place-order-btn {
-  background: linear-gradient(135deg, #10b981, #059669);
-  transition: 0.25s ease;
-}
-.place-order-btn:hover {
-  box-shadow: 0 8px 20px rgba(16, 185, 129, 0.35);
+  width: 100%;
+  padding: 16px;
+  background: linear-gradient(135deg, #0ea5e9, #0284c7);
+  color: white;
+  font-weight: 600;
+  border-radius: 12px;
+  margin-top: 12px;
 }
 </style>

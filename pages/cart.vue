@@ -1,89 +1,90 @@
 <script setup lang="ts">
 import { useCartStore } from '~/stores/cart'
-import { products } from '~/data/products'
 import BaseButton from '~/components/ui/BaseButton.vue'
 import { useRouter } from 'vue-router'
+import { computed, onMounted } from 'vue'
 
 const cartStore = useCartStore()
 const router = useRouter()
 
-// Detailed cart items
-const detailedItems = computed(() => cartStore.detailedItems)
+// Hydrate cart from backend/localStorage
+onMounted(async () => {
+  await cartStore.hydrate()
+  await cartStore.fetchCart()
+})
 
-// Handle quantity change
-const handleQuantity = (productId: number, delta: number) => {
-  const item = detailedItems.value.find((i) => i.product?.id === productId)
-  if (!item || !item.product) return
-  const next = item.quantity + delta
-  cartStore.setQuantity(productId, next)
-}
+const items = computed(() => cartStore.items)
 
-// Remove item
-const removeItem = (productId: number) => cartStore.removeFromCart(productId)
+// Qty Handler + Remove
+const changeQty = (lineId: string, qty: number) =>
+  cartStore.setQuantity(lineId, qty)
 
-// Navigate to checkout page
-const goToCheckout = () => {
-  if (cartStore.count === 0) return
+const remove = (lineId: string) =>
+  cartStore.removeFromCart(lineId)
+
+// Checkout button
+const goCheckout = () => {
+  if (!cartStore.count) return
   router.push('/checkout')
 }
 
-// Buy Along Products (top 8 products not in cart)
-const buyAlongProducts = computed(() =>
-  products.filter((p) => !detailedItems.value.some(i => i.product?.id === p.id)).slice(0, 8)
-)
+// Safe currency code
+const currency = computed(() => cartStore.cart?.region?.currency_code?.toUpperCase() || 'USD')
 </script>
 
 <template>
   <div class="space-y-8 px-4 sm:px-6 lg:px-8 py-6">
-    <!-- Header -->
     <header class="space-y-1">
-      <h1 class="text-2xl font-semibold tracking-tight">Cart</h1>
-      <p class="text-sm text-slate-600">
-        Review your items and proceed to secure checkout.
-      </p>
+      <h1 class="text-2xl font-semibold tracking-tight">Your Cart</h1>
+      <p class="text-sm text-slate-600">Review your items before checkout.</p>
     </header>
 
-    <!-- Cart Items -->
-    <div v-if="detailedItems.length" class="grid md:grid-cols-[2fr,1fr] gap-6 items-start">
-      <!-- Items List -->
+    <div v-if="items.length" class="grid md:grid-cols-[2fr,1fr] gap-6 items-start">
+      
+      <!-- Cart Items List -->
       <div class="space-y-4">
         <div
-          v-for="item in detailedItems"
-          :key="item.product?.id"
-          class="bg-white rounded-2xl border border-slate-100 p-3 flex gap-3 items-start hover:shadow-sm transition"
+          v-for="item in items"
+          :key="item.id"
+          class="bg-white rounded-2xl border border-slate-100 p-3 flex gap-3 items-start hover:shadow-md transition"
         >
           <!-- Thumbnail -->
-          <div class="h-20 w-20 rounded-xl overflow-hidden bg-slate-100 flex-shrink-0 flex justify-center items-center">
+          <div
+            class="h-20 w-20 rounded-xl overflow-hidden bg-slate-100 flex-shrink-0 flex justify-center items-center"
+          >
             <img
-              :src="item.product?.images[0]"
-              :alt="item.product?.name"
-              class="w-full h-full object-cover rounded-lg"
-            >
+              :src="item.thumbnail || '/default-product.jpg'"
+              :alt="item.title"
+              class="w-full h-full object-cover"
+            />
           </div>
 
-          <!-- Product Info -->
-          <div class="flex-1 min-w-0 flex flex-col justify-between">
-            <div>
-              <p class="text-sm font-medium line-clamp-1">{{ item.product?.name }}</p>
-              <p class="text-xs text-slate-500 line-clamp-2">{{ item.product?.description }}</p>
-              <p class="mt-1 text-sm font-semibold">{{ item.product?.currency }} {{ item.product?.price }}</p>
-            </div>
-            <!-- Quantity Controls -->
-            <div class="mt-2 flex flex-wrap items-center gap-3 text-xs">
-              <div class="inline-flex items-center gap-2 rounded-full border border-slate-200 px-2 py-1">
+          <!-- Info -->
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-medium line-clamp-1">{{ item.title }}</p>
+            <p class="text-xs text-slate-500">{{ item.variant?.title }}</p>
+            <p class="mt-1 text-sm font-semibold">
+              {{ currency }} {{ (item.unit_price / 100).toFixed(2) }}
+            </p>
+
+            <!-- Qty Control -->
+            <div class="mt-2 flex gap-3 items-center text-xs">
+              <div class="flex items-center gap-2 border border-slate-200 rounded-full px-2 py-1">
                 <button
-                  class="w-6 h-6 flex items-center justify-center rounded-full border border-slate-200 text-slate-700 hover:bg-slate-50"
-                  @click="handleQuantity(item.product!.id, -1)"
+                  class="w-6 h-6 flex items-center justify-center rounded-full border text-slate-700"
+                  @click="changeQty(item.id, item.quantity - 1)"
                 >-</button>
+
                 <span>{{ item.quantity }}</span>
+                
                 <button
-                  class="w-6 h-6 flex items-center justify-center rounded-full border border-slate-200 text-slate-700 hover:bg-slate-50"
-                  @click="handleQuantity(item.product!.id, 1)"
+                  class="w-6 h-6 flex items-center justify-center rounded-full border text-slate-700"
+                  @click="changeQty(item.id, item.quantity + 1)"
                 >+</button>
               </div>
-              <button
-                class="text-xs text-slate-500 hover:text-red-500"
-                @click="removeItem(item.product!.id)"
+
+              <button class="hover:text-red-500 text-slate-500"
+                @click="remove(item.id)"
               >
                 Remove
               </button>
@@ -92,67 +93,40 @@ const buyAlongProducts = computed(() =>
         </div>
       </div>
 
-      <!-- Summary Sidebar -->
-      <aside class="bg-white rounded-2xl border border-slate-100 p-4 space-y-4 sticky top-6">
+      <!-- Sidebar -->
+      <aside class="bg-white rounded-2xl border p-4 space-y-4 sticky top-6">
         <h2 class="text-sm font-semibold">Summary</h2>
-        <div class="flex items-center justify-between text-sm">
+
+        <div class="flex justify-between text-sm">
           <span>Items</span>
           <span>{{ cartStore.count }}</span>
         </div>
-        <div class="flex items-center justify-between text-sm">
+
+        <div class="flex justify-between text-sm">
           <span>Total</span>
-          <span class="font-semibold">USD {{ cartStore.total.toFixed(2) }}</span>
+          <span class="font-semibold">
+            {{ currency }} {{ cartStore.total.toFixed(2) }}
+          </span>
         </div>
-        <BaseButton
-          class="w-full"
-          :disabled="cartStore.count === 0"
-          @click="goToCheckout"
-        >
+
+        <BaseButton class="w-full" :disabled="!cartStore.count" @click="goCheckout">
           Proceed to Checkout
         </BaseButton>
       </aside>
     </div>
 
-    <!-- Buy Along Products (Horizontal Scroll) -->
-    <section v-if="buyAlongProducts.length" class="space-y-2 mt-6">
-      <h2 class="text-lg font-semibold tracking-tight">Buy Along With These</h2>
-      <div class="flex gap-4 overflow-x-auto py-2 scrollbar-hide">
-        <div
-          v-for="product in buyAlongProducts"
-          :key="product.id"
-          class="flex-shrink-0 w-36 sm:w-44 bg-white border border-slate-100 rounded-2xl overflow-hidden hover:shadow-md transition flex flex-col items-center p-3"
-        >
-          <div class="w-full h-32 flex justify-center items-center bg-slate-50 rounded-xl overflow-hidden">
-            <img :src="product.images[0]" :alt="product.name" class="object-contain w-full h-full"/>
-          </div>
-          <p class="text-sm font-medium mt-2 line-clamp-2 text-center">{{ product.name }}</p>
-          <p class="text-sm font-semibold mt-1">{{ product.currency }} {{ product.price }}</p>
-          <BaseButton class="mt-2 w-full text-sm py-1.5" @click="cartStore.addToCart(product.id, 1)">
-            Add to Cart
-          </BaseButton>
-        </div>
-      </div>
-    </section>
-
-    <!-- Empty Cart Message -->
-    <div v-else-if="!detailedItems.length" class="text-sm text-slate-600">
-      Your cart is empty. Browse products and add items to see them here.
-    </div>
+    <!-- Empty Cart -->
+    <p v-else class="text-sm text-slate-600">
+      Cart is empty. Add some items to view here.
+    </p>
   </div>
 </template>
 
 <style scoped>
-/* Smooth hover effect */
-div:hover {
-  transition: all 0.2s ease-in-out;
+button {
+  transition: 0.2s ease;
 }
-
-/* Hide horizontal scrollbar */
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
-}
-.scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+button:hover {
+  background-color: #f0f0f0;
 }
 </style>

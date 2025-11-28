@@ -3,7 +3,7 @@ import { Server } from 'node:http';
 import { resolve, dirname, join } from 'node:path';
 import nodeCrypto from 'node:crypto';
 import { parentPort, threadId } from 'node:worker_threads';
-import { defineEventHandler, handleCacheHeaders, splitCookiesString, createEvent, fetchWithEvent, isEvent, eventHandler, setHeaders, sendRedirect, proxyRequest, getRequestHeader, setResponseHeaders, setResponseStatus, send, getRequestHeaders, setResponseHeader, appendResponseHeader, getRequestURL, getResponseHeader, removeResponseHeader, createError, getQuery as getQuery$1, readBody, createApp, createRouter as createRouter$1, toNodeListener, lazyEventHandler, getResponseStatus, getRouterParam, getResponseStatusText } from 'file://C:/Users/DELL/etsy-clone-nuxt4/node_modules/h3/dist/index.mjs';
+import { defineEventHandler, handleCacheHeaders, splitCookiesString, createEvent, fetchWithEvent, isEvent, eventHandler, setHeaders, sendRedirect, proxyRequest, getRequestHeader, setResponseHeaders, setResponseStatus, send, getRequestHeaders, setResponseHeader, appendResponseHeader, getRequestURL, getResponseHeader, removeResponseHeader, createError, getQuery as getQuery$1, readBody, createApp, createRouter as createRouter$1, toNodeListener, lazyEventHandler, getResponseStatus, getRouterParam, getHeader, getResponseStatusText } from 'file://C:/Users/DELL/etsy-clone-nuxt4/node_modules/h3/dist/index.mjs';
 import { escapeHtml } from 'file://C:/Users/DELL/etsy-clone-nuxt4/node_modules/@vue/shared/dist/shared.cjs.js';
 import { createRenderer, getRequestDependencies, getPreloadLinks, getPrefetchLinks } from 'file://C:/Users/DELL/etsy-clone-nuxt4/node_modules/vue-bundle-renderer/dist/runtime.mjs';
 import { parseURL, withoutBase, joinURL, getQuery, withQuery, withTrailingSlash, decodePath, withLeadingSlash, withoutTrailingSlash, joinRelativeURL } from 'file://C:/Users/DELL/etsy-clone-nuxt4/node_modules/ufo/dist/index.mjs';
@@ -648,6 +648,9 @@ const _inlineRuntimeConfig = {
     }
   },
   "public": {
+    "medusaUrl": "http://localhost:9000",
+    "medusaPublishableKey": "pk_6f3eb832efbfd19f1efbdb73cfb7c9b1e63ff85cded0bf58021a4440cdecb8b9",
+    "medusaAdminKey": "sk_ee51a4b956d9fa3baf531d0aa1818a3bbba99c895c9af4dc822b9142f4063eb9",
     "appName": "Etsy Clone"
   }
 };
@@ -1865,10 +1868,12 @@ async function getIslandContext(event) {
   return ctx;
 }
 
+const _lazy_Q_wJMU = () => Promise.resolve().then(function () { return ____path_$1; });
 const _lazy_a3Sap4 = () => Promise.resolve().then(function () { return renderer$1; });
 
 const handlers = [
   { route: '', handler: _KkTsgx, lazy: false, middleware: true, method: undefined },
+  { route: '/api/proxy/**:path', handler: _lazy_Q_wJMU, lazy: true, middleware: false, method: undefined },
   { route: '/__nuxt_error', handler: _lazy_a3Sap4, lazy: true, middleware: false, method: undefined },
   { route: '/__nuxt_island/**', handler: _SxA8c9, lazy: false, middleware: false, method: undefined },
   { route: '/**', handler: _lazy_a3Sap4, lazy: true, middleware: false, method: undefined }
@@ -2200,6 +2205,58 @@ const styles = {};
 const styles$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
   __proto__: null,
   default: styles
+}, Symbol.toStringTag, { value: 'Module' }));
+
+const ____path_ = defineEventHandler(async (event) => {
+  const config = useRuntimeConfig();
+  const { path } = event.context.params;
+  console.log("\u{1F6E0}\uFE0F Proxy Hit \u2192", path);
+  const targetUrl = `${config.public.medusaUrl}/${path}`;
+  console.log("\u27A1\uFE0F Target URL:", targetUrl);
+  const useAdminHeader = getHeader(event, "x-use-admin");
+  console.log("\u{1F50D} x-use-admin Header:", useAdminHeader);
+  const isAdminEndpoint = path.startsWith("admin/") || useAdminHeader === "true";
+  console.log("\u{1F511} Is Admin Endpoint:", isAdminEndpoint);
+  const headers = {
+    "Content-Type": "application/json"
+  };
+  if (isAdminEndpoint) {
+    console.log("\u{1F6A8} Using ADMIN Key");
+    headers["Authorization"] = `Bearer ${config.medusaAdminKey}`;
+  } else {
+    console.log("\u{1F6CD} Using PUBLISHABLE Key");
+    headers["x-publishable-api-key"] = config.public.medusaPublishableKey;
+  }
+  let bodyData = null;
+  if (["POST", "PUT", "PATCH"].includes(event.method || "")) {
+    bodyData = await readBody(event);
+    console.log("\u{1F4E6} Request Body:", bodyData);
+  }
+  try {
+    const res = await $fetch.raw(targetUrl, {
+      method: event.method,
+      headers,
+      body: bodyData
+    });
+    console.log("\u2714\uFE0F Proxy Success:", res.status);
+    return res._data;
+  } catch (error) {
+    console.error("\u{1F525} Proxy Error Full:", {
+      statusCode: error == null ? void 0 : error.statusCode,
+      message: error == null ? void 0 : error.message,
+      data: error == null ? void 0 : error.data
+    });
+    return {
+      statusCode: (error == null ? void 0 : error.statusCode) || 500,
+      message: (error == null ? void 0 : error.message) || "Proxy failed",
+      error: true
+    };
+  }
+});
+
+const ____path_$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
+  __proto__: null,
+  default: ____path_
 }, Symbol.toStringTag, { value: 'Module' }));
 
 function renderPayloadResponse(ssrContext) {

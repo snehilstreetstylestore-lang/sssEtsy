@@ -15,6 +15,12 @@ import { RuntimeConfig as UserRuntimeConfig, PublicRuntimeConfig as UserPublicRu
    },
   }
   interface SharedPublicRuntimeConfig {
+   medusaUrl: string,
+
+   medusaPublishableKey: string,
+
+   medusaAdminKey: string,
+
    appName: string,
   }
 declare module '@nuxt/schema' {

@@ -1,165 +1,168 @@
-<script setup lang="ts">
-import HeroSection from '~/components/ui/HeroSection.vue'
-import { categories } from '~/data/categories'
-import { products } from '~/data/products'
-import CategoryCard from '~/components/ui/CategoryCard.vue'
-import ProductGrid from '~/components/ui/ProductGrid.vue'
-import BaseButton from '~/components/ui/BaseButton.vue'
-import NewsletterSection from '~/components/ui/NewsletterSection.vue'
-import Blogs from '~/components/home/Blogs.vue'
-import { useRouter } from 'vue-router'
+  <script setup lang="ts">
+  import HeroSection from '~/components/ui/HeroSection.vue'
+  import CategoryCard from '~/components/ui/CategoryCard.vue'
+  import ProductGrid from '~/components/ui/ProductGrid.vue'
+  import BaseButton from '~/components/ui/BaseButton.vue'
+  import NewsletterSection from '~/components/ui/NewsletterSection.vue'
+  import Blogs from '~/components/home/Blogs.vue'
+  import { useRouter } from 'vue-router'
+  import { computed, onMounted } from 'vue'
 
-const router = useRouter()
+  // Stores
+  import { useProductStore } from '~/stores/products'
+  import { useCartStore } from '~/stores/cart'
+  import { useWishlistStore } from '~/stores/wishlist'
+  import { useUserStore } from '~/stores/user'
 
-const featuredProducts = products.slice(0, 4)
+  const router = useRouter()
+  const productStore = useProductStore()
+  const cartStore = useCartStore()
+  const wishlistStore = useWishlistStore()
+  const userStore = useUserStore()
 
-const goToCheckout = () => {
-  router.push('/checkout')
-}
+  // Load products + categories
+  onMounted(async () => {
+    console.log("🚀 Fetching Medusa products & categories…")
 
-// 🆕 Navigate to product page
-const goToProduct = (slug: string) => {
-  router.push(`/product/${slug}`)
-}
+    await productStore.fetchProducts()
+    await productStore.fetchCategories()
 
-// Why Choose Etsy features
-const features = [
-  { icon: '💎', title: 'Unique Products', description: 'Find one-of-a-kind items crafted by independent sellers worldwide.' },
-  { icon: '🌎', title: 'Global Marketplace', description: 'Shop from sellers across the globe with ease and security.' },
-  { icon: '🛡️', title: 'Secure Payments', description: 'Your transactions are protected with safe and reliable payment methods.' },
-  { icon: '🚚', title: 'Fast Shipping', description: 'Get your orders delivered quickly and track them every step of the way.' },
-  { icon: '💬', title: 'Direct Communication', description: 'Connect directly with sellers to ask questions or request custom items.' },
-  { icon: '⭐', title: 'Trusted Reviews', description: 'Read honest reviews from other buyers to make confident purchases.' },
-]
-</script>
+    cartStore.hydrate()
+    wishlistStore.hydrate()
+    userStore.hydrate()
+  })
 
-<template>
-  <div class="space-y-12 pb-10">
+  // Computed
+  const featuredProducts = computed(() => productStore.products.slice(0, 4))
+  const categories = computed(() => productStore.categories)
+  const productsLoading = computed(() => productStore.loadingProducts)
+  const categoriesLoading = computed(() => productStore.loadingCategories)
+  const error = computed(() => productStore.error)
 
-    <!-- 🧡 Hero Section -->
-    <HeroSection />
+  // Navigation
+  const goToCheckout = () => router.push('/checkout')
+  const goToProduct = (id: string) => router.push(`/product/${id}`)
 
-    <!-- 🛍️ Intro Section -->
-    <section class="grid md:grid-cols-2 gap-8 items-center px-4 sm:px-8">
-      <ClientOnly>
-        <div
-          v-motion="{
-            initial: { opacity: 0, y: 40 },
-            enter: { opacity: 1, y: 0, transition: { duration: 0.6 } }
-          }"
-        >
-          <h1 class="text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-tight mb-3">
-            Discover independent shops and one-of-a-kind pieces.
+  // Count category items
+  const getCountForCategory = (cat: any) => {
+    return productStore.products.filter((p) =>
+      p.product_categories?.some((c: any) =>
+        c.id === cat.id || c.handle === cat.handle
+      )
+    ).length
+  }
+  </script>
+
+  <template>
+    <div class="space-y-12 pb-10">
+
+      <HeroSection />
+
+      <!-- Product Preview -->
+      <section class="grid md:grid-cols-2 gap-8 items-center px-4 sm:px-8">
+        <div>
+          <h1 class="text-3xl font-semibold tracking-tight mb-3">
+            Discover independent shops
           </h1>
-
-          <p class="text-sm text-slate-600 mb-5 max-w-md">
-            This is a front-end only Etsy-style experience. Browse mock listings, add items to your cart, and explore how a marketplace UI can be structured in Nuxt 4.
+          <p class="text-sm text-slate-600 mb-5">
+            Browse categories dynamically synced from Medusa backend.
           </p>
 
-          <div class="flex flex-wrap gap-3">
-            <NuxtLink to="/search"><BaseButton>Start browsing</BaseButton></NuxtLink>
-            <NuxtLink to="/dashboard"><BaseButton variant="secondary">Seller dashboard</BaseButton></NuxtLink>
-            <BaseButton variant="emerald" @click="goToCheckout">Go to checkout</BaseButton>
+          <div class="flex gap-3 flex-wrap">
+            <NuxtLink to="/search">
+              <BaseButton>Start browsing</BaseButton>
+            </NuxtLink>
+            <NuxtLink to="/dashboard">
+              <BaseButton variant="secondary">Seller dashboard</BaseButton>
+            </NuxtLink>
+            <BaseButton variant="emerald" @click="goToCheckout">
+              Go to checkout
+            </BaseButton>
           </div>
         </div>
-      </ClientOnly>
 
-      <!-- Product Preview Grid -->
-      <ClientOnly>
-        <div
-          v-motion="{
-            initial: { opacity: 0, y: 20 },
-            enter: { opacity: 1, y: 0, transition: { duration: 0.45 } }
-          }"
-          class="bg-white rounded-3xl border border-slate-100 shadow-soft p-4 sm:p-6 grid grid-cols-2 gap-3 sm:gap-4"
-        >
-          <div
-            v-for="product in featuredProducts"
-            :key="product.id"
-            class="bg-slate-50 rounded-2xl p-3 sm:p-4 flex flex-col hover:shadow-md transition-shadow cursor-pointer"
-            @click="goToProduct(product.slug)"
-          >
-            <div class="aspect-[4/3] mb-2 overflow-hidden rounded-xl bg-slate-100 flex items-center justify-center">
+        <div class="bg-white border shadow p-4 rounded-2xl grid grid-cols-2 gap-4">
+          <template v-if="productsLoading">
+            <div>Loading products...</div>
+          </template>
+
+          <template v-else-if="error">
+            <div class="text-red-600">Error: {{ error }}</div>
+          </template>
+
+          <template v-else>
+            <div
+              v-for="product in featuredProducts"
+              :key="product.id"
+              @click="goToProduct(product.id)"
+              class="rounded-xl p-2 bg-slate-50 cursor-pointer"
+            >
               <img
-                :src="product.images[0]"
-                :alt="product.name"
-                class="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                :src="product.thumbnail || product.images?.[0] || '/default-product.jpg'"
+                class="w-full h-28 object-cover rounded-lg"
               />
+              <p class="text-xs mt-1 line-clamp-2">{{ product.name }}</p>
+              <p class="text-xs font-semibold">
+                ₹{{ (product.price / 100).toFixed(2) }}
+              </p>
             </div>
-
-            <p class="text-xs sm:text-sm font-medium line-clamp-2 mb-1">{{ product.name }}</p>
-
-            <p class="text-[11px] sm:text-xs text-slate-500 mb-1 line-clamp-2">
-              {{ product.description }}
-            </p>
-
-            <p class="text-xs sm:text-sm font-semibold">
-              {{ product.currency }} {{ product.price }}
-            </p>
-          </div>
+          </template>
         </div>
-      </ClientOnly>
-    </section>
+      </section>
 
-    <!-- 🧭 Category Section -->
-    <section class="px-4 sm:px-8">
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-sm sm:text-base font-semibold tracking-tight">Browse by category</h2>
-        <NuxtLink to="/search" class="text-xs sm:text-sm text-slate-600 hover:text-slate-900">View all products</NuxtLink>
-      </div>
-
-      <div class="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-2">
-        <div v-for="category in categories" :key="category.id" class="snap-start flex-shrink-0">
-          <CategoryCard :category="category" />
+      <!-- Categories Section -->
+      <section class="px-4 sm:px-8">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-base font-semibold">Browse by category</h2>
+          <NuxtLink to="/search" class="text-xs text-slate-600">
+            View all
+          </NuxtLink>
         </div>
-      </div>
-    </section>
 
-    <!-- 🌟 Featured Listings -->
-    <section class="px-4 sm:px-8">
-      <div class="flex items-center justify-between mb-3">
-        <h2 class="text-sm sm:text-base font-semibold tracking-tight">Featured listings</h2>
-        <p class="text-xs text-slate-500">All data is static mock JSON.</p>
-      </div>
+        <div class="flex gap-4 overflow-x-auto snap-x snap-mandatory scrollbar-hide pb-2">
+          <template v-if="categoriesLoading">
+            <div class="py-6 px-4">Loading categories…</div>
+          </template>
 
-      <ProductGrid :products="featuredProducts" />
-    </section>
+          <template v-else-if="!categories.length">
+            <div class="py-6 px-4">⚠ No categories found</div>
+          </template>
 
-    <Blogs />
-
-    <!-- 🌟 Why Choose Etsy -->
-    <section class="py-12 px-4 sm:px-6 lg:px-8 bg-yellow-200">
-      <div class="max-w-7xl mx-auto text-center mb-10">
-        <h2 class="text-3xl sm:text-4xl font-bold tracking-tight text-slate-900">Why Choose Etsy?</h2>
-        <p class="mt-4 text-slate-700 max-w-2xl mx-auto">
-          Etsy is more than a marketplace. It’s a community where creativity, uniqueness, and safety come together.
-        </p>
-      </div>
-
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-        <div
-          v-for="(feature, index) in features"
-          :key="index"
-          class="bg-yellow-100 rounded-2xl p-6 flex flex-col items-center text-center"
-        >
-          <div class="text-4xl mb-4">{{ feature.icon }}</div>
-          <h3 class="text-xl font-semibold mb-2">{{ feature.title }}</h3>
-          <p class="text-slate-700 text-sm">{{ feature.description }}</p>
+          <template v-else>
+            <div
+              v-for="category in categories"
+              :key="category.id"
+              class="snap-start shrink-0"
+            >
+              <NuxtLink :to="`/category/${category.handle || category.id}`">
+                <CategoryCard
+                  :category="{
+                    id: category.id,
+                    name: category.name,
+                    slug: category.handle || category.id,
+                    image: '/default-collection.jpg'
+                  }"
+                />
+              </NuxtLink>
+              <p class="text-xs text-center mt-1 text-slate-500">
+                {{ getCountForCategory(category) }} items
+              </p>
+            </div>
+          </template>
         </div>
-      </div>
+      </section>
 
-      <div class="pt-4"></div>
+      <section class="px-4 sm:px-8">
+        <h2 class="text-base font-semibold mb-3">Featured Listings</h2>
+        <ProductGrid :products="featuredProducts" />
+      </section>
+
+      <Blogs />
       <NewsletterSection />
-    </section>
-  </div>
-</template>
+    </div>
+  </template>
 
-<style scoped>
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
-}
-.scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-</style>
+  <style scoped>
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+  .scrollbar-hide { scrollbar-width: none; -ms-overflow-style: none; }
+  </style>

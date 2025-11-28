@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import type { Product } from '~/data/products'
+import type { Product } from '~/types/medusa'
 import { useCartStore } from '~/stores/cart'
 import { useWishlistStore } from '~/stores/wishlist'
 import BaseButton from '~/components/ui/BaseButton.vue'
 import { Heart } from 'lucide-vue-next'
-import { onMounted, ref, computed } from 'vue'
+import { ref, computed } from 'vue'
 
 interface Props {
   product: Product
@@ -14,132 +14,115 @@ const props = defineProps<Props>()
 const cartStore = useCartStore()
 const wishlistStore = useWishlistStore()
 
-// Detect client + touch devices
-const isClient = ref(false)
-const isTouchDevice = ref(false)
+const adding = ref(false)
 
-onMounted(() => {
-  isClient.value = true
-  isTouchDevice.value = window.matchMedia('(hover: none), (pointer: coarse)').matches
+// Safely pick first variant
+const variant = computed(() => props.product?.variants?.[0] || null)
+
+// Price with fallback
+const priceText = computed(() => {
+  const price = variant.value?.prices?.[0]?.amount
+  return price ? `₹ ${(price / 100).toFixed(2)}` : "Price on checkout"
 })
 
-const toggleWishlist = () => {
-  wishlistStore.toggle(props.product.id)
-}
-
-const addToCart = () => {
-  cartStore.addToCart(props.product.id, 1)
-}
-
+// Wishlist
+const toggleWishlist = () => wishlistStore.toggle(props.product.id)
 const isWishlisted = computed(() => wishlistStore.isInWishlist(props.product.id))
+
+// Add to cart handler
+const addToCart = async () => {
+  if (!variant.value?.id) return console.warn("No variant available")
+
+  try {
+    adding.value = true
+
+    if (!cartStore.cart?.id) {
+      await cartStore.createCart()
+    } else if (!cartStore.cart.items) {
+      await cartStore.fetchCart()
+    }
+
+    await cartStore.addToCart(variant.value.id, 1)
+
+  } catch (err) {
+    console.error("Add to Cart failed:", err)
+  } finally {
+    adding.value = false
+  }
+}
+
+const productImg = computed(() =>
+  props.product.images?.[0]?.url || props.product.thumbnail || "/placeholder.png"
+)
 </script>
 
 <template>
   <article
-    v-if="product"
-    :class="[
-      'group bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm flex flex-col transition-all duration-300',
-      !isTouchDevice && 'hover:shadow-lg hover:border-slate-200 hover:-translate-y-1 hover:scale-[1.01]'
-    ]"
+    class="group bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition relative"
   >
-    <!-- 🖼 Product Image -->
+
+    <!-- Product Image -->
     <NuxtLink
-      :to="`/product/${product.slug}`"
-      class="relative block aspect-[4/5] overflow-hidden bg-slate-100 rounded-t-2xl"
+      :to="`/product/${product.handle || product.id}`"
+      class="relative block bg-gray-100 rounded-t-xl aspect-[4/5]"
     >
       <img
-        :src="product.images?.[0] || '/images/placeholder.png'"
-        :alt="product.name"
-        class="w-full h-full object-cover transition-transform duration-500 ease-out"
-        :class="!isTouchDevice && 'group-hover:scale-[1.08]'"
+        :src="productImg"
+        :alt="product.title"
+        class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
         loading="lazy"
       />
 
-      <!-- 🏷 Product Badges -->
-      <div
-        v-if="product.badges?.length"
-        class="absolute top-2 left-2 flex flex-wrap gap-1"
-      >
-        <span
-          v-for="badge in product.badges"
-          :key="badge"
-          class="inline-flex px-2 py-0.5 text-[10px] font-medium rounded-full bg-white/90 border border-slate-200 backdrop-blur-sm"
-        >
-          {{ badge }}
-        </span>
-      </div>
-
-      <!-- ❤️ Wishlist Button -->
+      <!-- Wishlist Button -->
       <button
         type="button"
-        class="absolute top-2 right-2 rounded-full bg-white/90 border border-slate-200 
-               p-1.5 hover:border-slate-400 hover:bg-white transition"
+        class="absolute top-2 right-2 rounded-full bg-white shadow p-1.5 hover:scale-110 transition"
         @click.prevent.stop="toggleWishlist"
       >
         <Heart
-          :class="[
-            'w-4 h-4 transition-colors duration-200',
-            isWishlisted ? 'fill-red-500 text-red-500' : 'text-slate-700'
-          ]"
+          :class="[isWishlisted ? 'fill-red-500 text-red-500' : 'text-gray-700']"
+          class="w-4 h-4"
         />
       </button>
-
-      <!-- ✨ Hover Overlay (desktop only) -->
-      <div
-        v-if="!isTouchDevice"
-        class="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-      ></div>
     </NuxtLink>
 
-    <!-- 📄 Product Info -->
-    <div class="flex-1 flex flex-col px-3.5 pt-3 pb-3">
-      <!-- 🏷 Title -->
+    <!-- Product Info -->
+    <div class="flex flex-col px-3.5 pt-3 pb-4">
       <NuxtLink
-        :to="`/product/${product.slug}`"
-        class="text-sm font-medium line-clamp-2 hover:underline"
+        :to="`/product/${product.handle || product.id}`"
+        class="text-sm font-medium line-clamp-2 hover:text-purple-600 transition"
       >
-        {{ product.name }}
+        {{ product.title }}
       </NuxtLink>
 
-      <!-- ✍️ Description -->
-      <p class="mt-1 text-xs text-slate-500 line-clamp-2">
-        {{ product.description }}
+      <p
+        v-if="product.subtitle"
+        class="text-[13px] text-gray-500 mt-1 line-clamp-2"
+      >
+        {{ product.subtitle }}
       </p>
 
-      <!-- 💰 Price + Rating -->
-      <div class="mt-3 flex items-center justify-between text-sm">
-        <div class="font-semibold">
-          {{ product.currency }} {{ product.price }}
-        </div>
-        <div class="text-xs text-slate-500">
-          ★ {{ product.rating.toFixed(1) }} · {{ product.ratingCount }} reviews
-        </div>
-      </div>
+      <span class="font-semibold text-sm tracking-wide mt-2">
+        {{ priceText }}
+      </span>
 
-      <!-- 🛒 Add to Cart -->
-      <div class="mt-3">
-        <BaseButton
-          size="sm"
-          class="w-full"
-          @click="addToCart"
-        >
-          Add to cart
-        </BaseButton>
-      </div>
+      <BaseButton
+        size="sm"
+        class="w-full mt-3"
+        :disabled="adding || !variant?.id"
+        @click="addToCart"
+      >
+        {{ adding ? "Adding..." : "Add to cart" }}
+      </BaseButton>
     </div>
   </article>
 </template>
 
 <style scoped>
 article {
-  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  transition: transform 0.25s, box-shadow 0.25s;
 }
-
-/* Extra hover detail only for pointer devices */
-@media (hover: hover) and (pointer: fine) {
-  article:hover {
-    transform: translateY(-4px) scale(1.01);
-    box-shadow: 0 10px 16px rgba(0, 0, 0, 0.08);
-  }
+article:hover {
+  transform: translateY(-4px);
 }
 </style>
